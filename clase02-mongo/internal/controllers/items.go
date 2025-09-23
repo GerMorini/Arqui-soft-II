@@ -4,6 +4,7 @@ import (
 	"clase02-mongo/internal/domain"
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -69,25 +70,91 @@ func (c *ItemsController) GetItems(ctx *gin.Context) {
 // CreateItem maneja POST /items - Crea un nuevo item
 // Consigna 1: Recibir JSON, validar y crear item
 func (c *ItemsController) CreateItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar CreateItem"})
+	var req domain.Item
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		return
+	}
+
+	created, err := c.service.Create(ctx.Request.Context(), req)
+	if err != nil {
+		if strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "must") || strings.Contains(err.Error(), "invalid") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create item", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{"item": created})
 }
 
 // GetItemByID maneja GET /items/:id - Obtiene item por ID
 // Consigna 2: Extraer ID del path param, validar y buscar
 func (c *ItemsController) GetItemByID(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar GetItemByID"})
+	id := ctx.Param("id")
+	item, err := c.service.GetByID(ctx.Request.Context(), id)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get item", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"item": item})
 }
 
 // UpdateItem maneja PUT /items/:id - Actualiza item existente
 // Consigna 3: Extraer ID y datos, validar y actualizar
 func (c *ItemsController) UpdateItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar UpdateItem"})
+	id := ctx.Param("id")
+	var req domain.Item
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		return
+	}
+
+	updated, err := c.service.Update(ctx.Request.Context(), id, req)
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid") || strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "must") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update item", "details": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"item": updated})
 }
 
 // DeleteItem maneja DELETE /items/:id - Elimina item por ID
 // Consigna 4: Extraer ID, validar y eliminar
 func (c *ItemsController) DeleteItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar DeleteItem"})
+	id := ctx.Param("id")
+	if err := c.service.Delete(ctx.Request.Context(), id); err != nil {
+		if strings.Contains(err.Error(), "invalid") {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if strings.Contains(err.Error(), "not found") {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete item", "details": err.Error()})
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // 📚 Notas sobre HTTP Status Codes

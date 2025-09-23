@@ -5,8 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
 	"time"
+
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 type MemcachedItemsRepository struct {

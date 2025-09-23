@@ -5,9 +5,12 @@ import (
 	"clase04-rabbitmq/internal/domain"
 	"context"
 	"errors"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"fmt"
 	"log"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -77,7 +80,35 @@ func (r *MongoItemsRepository) List(ctx context.Context) ([]domain.Item, error) 
 // Create inserta un nuevo item en DB
 // Consigna 1: Validar name y price >= 0, agregar timestamps
 func (r *MongoItemsRepository) Create(ctx context.Context, item domain.Item) (domain.Item, error) {
-	return domain.Item{}, errors.New("TODO: implementar Create")
+	// Establecer timestamps si están vacíos
+	now := time.Now()
+	if item.CreatedAt.IsZero() {
+		item.CreatedAt = now
+	}
+	if item.UpdatedAt.IsZero() {
+		item.UpdatedAt = now
+	}
+
+	// Convertir de dominio a DAO
+	var item_dao dao.Item = dao.FromDomain(item)
+
+	// Insertar en la base de datos
+	result, err := r.col.InsertOne(ctx, item_dao)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("error al insertar item: %w", err)
+	}
+
+	// Obtener el ID generado por MongoDB
+	insertedID, ok := result.InsertedID.(primitive.ObjectID)
+	if !ok {
+		return domain.Item{}, fmt.Errorf("error al obtener el ID insertado")
+	}
+
+	// Actualizar el item_dao con el ID generado
+	item_dao.ID = insertedID
+
+	// Convertir de vuelta a dominio y retornar
+	return item_dao.ToDomain(), nil
 }
 
 // GetByID busca un item por su ID

@@ -69,7 +69,21 @@ func (c *ItemsController) GetItems(ctx *gin.Context) {
 // CreateItem maneja POST /items - Crea un nuevo item
 // Consigna 1: Recibir JSON, validar y crear item
 func (c *ItemsController) CreateItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar CreateItem"})
+	var item domain.Item
+
+	err := ctx.BindJSON(&item)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "consuta con formato incorrecto"})
+		return
+	}
+
+	item_rtn, err := c.service.Create(ctx, item)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, item_rtn)
 }
 
 // GetItemByID maneja GET /items/:id - Obtiene item por ID

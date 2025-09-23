@@ -50,6 +50,10 @@ func (s *ItemsServiceImpl) List(ctx context.Context) ([]domain.Item, error) {
 // Create valida y crea un nuevo item
 // Consigna 1: Validar name no vacío y price >= 0
 func (s *ItemsServiceImpl) Create(ctx context.Context, item domain.Item) (domain.Item, error) {
+	if err := s.validateItem(item); err != nil {
+		return domain.Item{}, err
+	}
+
 	created, err := s.repository.Create(ctx, item)
 	if err != nil {
 		return domain.Item{}, fmt.Errorf("error creating item in repository: %w", err)
@@ -61,6 +65,10 @@ func (s *ItemsServiceImpl) Create(ctx context.Context, item domain.Item) (domain
 // GetByID obtiene un item por su ID
 // Consigna 2: Validar formato de ID antes de consultar DB
 func (s *ItemsServiceImpl) GetByID(ctx context.Context, id string) (domain.Item, error) {
+	if strings.TrimSpace(id) == "" {
+		return domain.Item{}, errors.New("id is required")
+	}
+
 	item, err := s.repository.GetByID(ctx, id)
 	if err != nil {
 		return domain.Item{}, fmt.Errorf("error getting item from repository: %w", err)
@@ -72,21 +80,34 @@ func (s *ItemsServiceImpl) GetByID(ctx context.Context, id string) (domain.Item,
 // Update actualiza un item existente
 // Consigna 3: Validar campos antes de actualizar
 func (s *ItemsServiceImpl) Update(ctx context.Context, id string, item domain.Item) (domain.Item, error) {
+	if strings.TrimSpace(id) == "" {
+		return domain.Item{}, errors.New("id is required")
+	}
 
-	// TODO: Actualizar en DB
-	// TODO: Guardar en cache
+	if err := s.validateItem(item); err != nil {
+		return domain.Item{}, err
+	}
 
-	return domain.Item{}, errors.New("TODO: implementar Update")
+	updated, err := s.repository.Update(ctx, id, item)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("error updating item in repository: %w", err)
+	}
+
+	return updated, nil
 }
 
 // Delete elimina un item por ID
 // Consigna 4: Validar ID antes de eliminar
 func (s *ItemsServiceImpl) Delete(ctx context.Context, id string) error {
+	if strings.TrimSpace(id) == "" {
+		return errors.New("id is required")
+	}
 
-	// TODO: Borrar de cache
-	// TODO: Borrar de DB
+	if err := s.repository.Delete(ctx, id); err != nil {
+		return fmt.Errorf("error deleting item in repository: %w", err)
+	}
 
-	return errors.New("TODO: implementar Delete")
+	return nil
 }
 
 // validateItem aplica reglas de negocio para validar un item
