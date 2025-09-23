@@ -4,8 +4,9 @@ import (
 	"clase03-memcached/internal/domain"
 	"context"
 	"fmt"
-	"github.com/karlseguin/ccache"
 	"time"
+
+	"github.com/karlseguin/ccache"
 )
 
 type ItemsLocalCacheRepository struct {
@@ -42,11 +43,12 @@ func (r ItemsLocalCacheRepository) GetByID(ctx context.Context, id string) (doma
 }
 
 func (r ItemsLocalCacheRepository) Update(ctx context.Context, id string, item domain.Item) (domain.Item, error) {
-	//TODO implement me
-	panic("implement me")
+	item.ID = id
+	r.client.Set(id, item, r.ttl)
+	return item, nil
 }
 
 func (r ItemsLocalCacheRepository) Delete(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	r.client.Delete(id)
+	return nil
 }
