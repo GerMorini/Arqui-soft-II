@@ -56,11 +56,25 @@ func (r MemcachedItemsRepository) GetByID(ctx context.Context, id string) (domai
 }
 
 func (r MemcachedItemsRepository) Update(ctx context.Context, id string, item domain.Item) (domain.Item, error) {
-	//TODO implement me
-	panic("implement me")
+	// We store by ID key; overwrite with new value and reset TTL
+	item.ID = id
+	bytes, err := json.Marshal(item)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("error marshalling item to JSON: %w", err)
+	}
+	if err := r.client.Set(&memcache.Item{
+		Key:        id,
+		Value:      bytes,
+		Expiration: int32(r.ttl.Seconds()),
+	}); err != nil {
+		return domain.Item{}, fmt.Errorf("error setting item in memcached: %w", err)
+	}
+	return item, nil
 }
 
 func (r MemcachedItemsRepository) Delete(ctx context.Context, id string) error {
-	//TODO implement me
-	panic("implement me")
+	if err := r.client.Delete(id); err != nil {
+		return fmt.Errorf("error deleting item from memcached: %w", err)
+	}
+	return nil
 }

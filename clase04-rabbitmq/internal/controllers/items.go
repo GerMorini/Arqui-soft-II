@@ -89,19 +89,41 @@ func (c *ItemsController) CreateItem(ctx *gin.Context) {
 // GetItemByID maneja GET /items/:id - Obtiene item por ID
 // Consigna 2: Extraer ID del path param, validar y buscar
 func (c *ItemsController) GetItemByID(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar GetItemByID"})
+	id := ctx.Param("id")
+	item, err := c.service.GetByID(ctx, id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, item)
 }
 
 // UpdateItem maneja PUT /items/:id - Actualiza item existente
 // Consigna 3: Extraer ID y datos, validar y actualizar
 func (c *ItemsController) UpdateItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar UpdateItem"})
+	id := ctx.Param("id")
+	var item domain.Item
+	if err := ctx.BindJSON(&item); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "consuta con formato incorrecto"})
+		return
+	}
+	updated, err := c.service.Update(ctx, id, item)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.JSON(http.StatusOK, updated)
 }
 
 // DeleteItem maneja DELETE /items/:id - Elimina item por ID
 // Consigna 4: Extraer ID, validar y eliminar
 func (c *ItemsController) DeleteItem(ctx *gin.Context) {
-	ctx.JSON(http.StatusNotImplemented, gin.H{"error": "TODO: implementar DeleteItem"})
+	id := ctx.Param("id")
+	if err := c.service.Delete(ctx, id); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }
 
 // 📚 Notas sobre HTTP Status Codes

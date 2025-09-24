@@ -98,21 +98,49 @@ func (s *ItemsServiceImpl) GetByID(ctx context.Context, id string) (domain.Item,
 // Update actualiza un item existente
 // Consigna 3: Validar campos antes de actualizar
 func (s *ItemsServiceImpl) Update(ctx context.Context, id string, item domain.Item) (domain.Item, error) {
+	// Validar datos de entrada
+	if err := s.validateItem(item); err != nil {
+		return domain.Item{}, fmt.Errorf("invalid item: %w", err)
+	}
 
-	// TODO: Actualizar en DB
-	// TODO: Guardar en cache
+	// Actualizar en DB
+	updated, err := s.repository.Update(ctx, id, item)
+	if err != nil {
+		return domain.Item{}, fmt.Errorf("error updating item in repository: %w", err)
+	}
 
-	return domain.Item{}, errors.New("TODO: implementar Update")
+	// Publicar evento de actualización (best-effort: si falla, devolver error)
+	if err := s.publisher.Publish(ctx, "update", updated.ID); err != nil {
+		return domain.Item{}, fmt.Errorf("error publishing item update: %w", err)
+	}
+
+	// Guardar en cache (best-effort: si falla, devolver error para aprendizaje)
+	if _, err := s.cache.Update(ctx, id, updated); err != nil {
+		return domain.Item{}, fmt.Errorf("error updating item in cache: %w", err)
+	}
+
+	return updated, nil
 }
 
 // Delete elimina un item por ID
 // Consigna 4: Validar ID antes de eliminar
 func (s *ItemsServiceImpl) Delete(ctx context.Context, id string) error {
+	// Borrar de DB primero
+	if err := s.repository.Delete(ctx, id); err != nil {
+		return fmt.Errorf("error deleting item from repository: %w", err)
+	}
 
-	// TODO: Borrar de cache
-	// TODO: Borrar de DB
+	// Publicar evento de eliminación
+	if err := s.publisher.Publish(ctx, "delete", id); err != nil {
+		return fmt.Errorf("error publishing item deletion: %w", err)
+	}
 
-	return errors.New("TODO: implementar Delete")
+	// Borrar de cache
+	if err := s.cache.Delete(ctx, id); err != nil {
+		return fmt.Errorf("error deleting item from cache: %w", err)
+	}
+
+	return nil
 }
 
 // validateItem aplica reglas de negocio para validar un item
