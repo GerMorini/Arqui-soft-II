@@ -7,10 +7,11 @@ import (
 	"clase03-memcached/internal/repository"
 	"clase03-memcached/internal/services"
 	"context"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
